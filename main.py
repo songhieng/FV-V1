@@ -10,6 +10,7 @@ import cv2
 import faiss
 import os
 import imgaug.augmenters as iaa
+from deepface import DeepFace
 
 app = FastAPI()
 
@@ -188,19 +189,24 @@ async def match_face(image: UploadFile = File(...), similarity_threshold: float 
     best_match_index = indices[0][0]
     best_similarity_percentage = (1 - distances[0][0]) * 100
     
-    if best_similarity_percentage >= similarity_threshold:
-        matched_label = known_labels[best_match_index]
-        
-        # If similarity is greater than 80%, save the new encoding under the same label
-        if 82.0 <= best_similarity_percentage < 100.0:
-            known_encodings = list(known_encodings)
-            known_encodings.append(target_encoding[0])
-            known_labels.append(matched_label)
-            save_encodings(np.array(known_encodings), known_labels, encodings_file)
-
-        return JSONResponse(content={"status": "Success", "message": f"Match found: {matched_label}, Similarity: {best_similarity_percentage:.2f}%"})
-    else:
-        return JSONResponse(content={"status": "Failure", "message": f"Not found:, Similarity: {best_similarity_percentage:.2f}%"})
+    # Default to True (real) for spoof detection
+    is_real = True
+    
+    # Perform face spoof detection using DeepFace
+    try:
+        result = DeepFace.extract_faces(img_path=image.filename, anti_spoofing=True)
+        if result and isinstance(result, list):
+            is_real = result[0].get('is_real', True)
+    except Exception as e:
+        # Log the exception if necessary, but do not interrupt the program
+        is_real = False  # Conservative approach if spoof detection fails
+    
+    return JSONResponse(content={
+        "status": "Success",
+        "similarity": f"{best_similarity_percentage:.2f}%",
+        "is_real": is_real,
+        "message": "Face matched successfully" if best_similarity_percentage >= similarity_threshold else "Face not matched"
+    })
 
 if __name__ == '__main__':
     import uvicorn

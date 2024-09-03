@@ -8,3 +8,6 @@ fastapi
 uvicorn
 tensorflow-cpu
 python-multipart
+numpy
+imgaug
+deepface
