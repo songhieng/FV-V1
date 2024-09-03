@@ -1,0 +1,10 @@
+face_recognition
+opencv-python
+pillow 
+imgaug
+faiss-cpu
+mtcnn
+fastapi 
+uvicorn
+tensorflow-cpu
+python-multipart
